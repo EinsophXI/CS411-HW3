@@ -83,11 +83,14 @@ def test_getcombatants(battle_model, sample_combatants):
     assert all_meals[1].id == 2
     assert all_meals[2].id == 3
 
-    
 ##################################################
-# Utility Function Test Cases
+# Battle Test Cases
 ##################################################
 
-##################################################
-# Playback Test Cases
-##################################################
+def test_battle(battle_model, sample_combatants):
+    """Test battling the meals in the combatant list"""
+    battle_model.combatants.extend(sample_combatants)
+    
+    battle_model.battle()
+    
+    # assert mock_update_meal_stats. == 
