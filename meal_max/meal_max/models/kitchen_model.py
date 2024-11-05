@@ -121,6 +121,19 @@ def delete_meal(meal_id: int) -> None:
         raise e
 
 def get_leaderboard(sort_by: str="wins") -> dict[str, Any]:
+    """
+    Retrieves the leaderboard of meals, sorted by either 'wins' or 'win_pct' (win percentage).
+
+    Args:
+        sort_by (str): The criteria to sort the leaderboard by ('wins' or 'win_pct'). Default is 'wins'.
+
+    Returns:
+        dict[str, Any]: A list of dictionaries containing meal statistics, including win percentage, sorted by the specified criteria.
+
+    Raises:
+        ValueError: If an invalid sort_by value is provided.
+        sqlite3.Error: If any database error occurs while fetching leaderboard data.
+    """
     query = """
         SELECT id, meal, cuisine, price, difficulty, battles, wins, (wins * 1.0 / battles) AS win_pct
         FROM meals WHERE deleted = false AND battles > 0
@@ -195,6 +208,19 @@ def get_meal_by_id(meal_id: int) -> Meal:
 
 
 def get_meal_by_name(meal_name: str) -> Meal:
+    """
+    Retrieves a meal from the catalog by its meal name.
+
+    Args:
+        meal_name (str): The name of the meal to retrieve.
+
+    Returns:
+        Meal: The meal object corresponding to the provided meal name.
+
+    Raises:
+        ValueError: If the meal with the given name does not exist or is marked as deleted.
+        sqlite3.Error: If any database error occurs while retrieving the meal.
+    """
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -216,6 +242,17 @@ def get_meal_by_name(meal_name: str) -> Meal:
 
 
 def update_meal_stats(meal_id: int, result: str) -> None:
+    """
+    Updates the statistics for a meal based on the result of a battle ('win' or 'loss').
+
+    Args:
+        meal_id (int): The ID of the meal to update.
+        result (str): The result of the battle ('win' or 'loss').
+
+    Raises:
+        ValueError: If the result is not 'win' or 'loss'.
+        sqlite3.Error: If any database error occurs while updating the meal statistics.
+    """
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
