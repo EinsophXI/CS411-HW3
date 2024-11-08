@@ -89,7 +89,7 @@ def clear_meals() -> None:
 
 def delete_meal(meal_id: int) -> None:
     """
-    Soft deletes a meal from the catalog by marking it as deleted.
+    Soft deletes a meal from the meals table by marking it as deleted.
 
     Args:
         meal_id (int): The ID of the meal to delete.
@@ -121,6 +121,27 @@ def delete_meal(meal_id: int) -> None:
         raise e
 
 def get_leaderboard(sort_by: str="wins") -> dict[str, Any]:
+    """
+    Retrieves the leaderboard for meals, sorted by either wins or win percentage.
+    
+    Args:
+      sort_by (str): Criteria for sorting the leaderboard. Options are:
+              - 'wins': Sorts by the total number of wins (default).
+              - 'win_pct': Sorts by the win percentage.
+    Returns:
+      dict[str, Any]: A list of dictionaries, each containing:
+            - 'id' (int): Unique identifier for the meal.
+            - 'meal' (str): Name of the meal.
+            - 'cuisine' (str): Type of cuisine for the meal.
+            - 'price' (float): Price associated with the meal.
+            - 'difficulty' (str): Difficulty level of preparing the meal.
+            - 'battles' (int): Total number of battles the meal has participated in.
+            - 'wins' (int): Total number of wins for the meal.
+            - 'win_pct' (float): Win percentage, rounded to one decimal place.
+    Raises:
+      ValueError: If `sort_by` is neither 'wins' nor 'win_pct'.
+      sqlite3.Error: If an error occurs while accessing the database.
+    """
     query = """
         SELECT id, meal, cuisine, price, difficulty, battles, wins, (wins * 1.0 / battles) AS win_pct
         FROM meals WHERE deleted = false AND battles > 0
@@ -163,7 +184,7 @@ def get_leaderboard(sort_by: str="wins") -> dict[str, Any]:
 
 def get_meal_by_id(meal_id: int) -> Meal:
     """
-    Retrieves a meal from the catalog by its meal ID.
+    Retrieves a meal from the meals table by its meal ID.
 
     Args:
         meal_id (int): The ID of the song to retrieve.
@@ -195,6 +216,18 @@ def get_meal_by_id(meal_id: int) -> Meal:
 
 
 def get_meal_by_name(meal_name: str) -> Meal:
+    """
+    Retrieves a meal from the meals table by its name.
+
+    Args:
+        meal_name (str): The name of the meal.
+
+    Returns:
+        Meal: The meal object corresponding to meal_name.
+
+    Raises:
+        ValueError: If the meal name is not found or has been deleted.
+    """
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
