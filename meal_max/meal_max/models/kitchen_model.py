@@ -249,6 +249,17 @@ def get_meal_by_name(meal_name: str) -> Meal:
 
 
 def update_meal_stats(meal_id: int, result: str) -> None:
+    """
+    Updates the statistics for a meal based on the result of a battle ('win' or 'loss').
+
+    Args:
+        meal_id (int): The ID of the meal to update.
+        result (str): The result of the battle ('win' or 'loss').
+
+    Raises:
+        ValueError: If the result is not 'win' or 'loss'.
+        sqlite3.Error: If any database error occurs while updating the meal statistics.
+    """
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
