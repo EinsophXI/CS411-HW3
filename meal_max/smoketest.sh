@@ -478,23 +478,18 @@ clear_catalog
 create_meal 180 "Pasta" "Italian" 20.0 "Easy"
 create_meal 200 "Tacos" "Mexican" 22.0 "Easy"
 create_meal 202 "Steak" "French" 24.0 "Medium"
-create_meal 204 ""
-create_meal "Led Zeppelin" "Stairway to Heaven" 1971 "Rock" 180
+create_meal 204 "Sushi" "Japanese" 32.0 "Hard"
+create_meal 206 "Dosa" "Indian" 34.0 "Hard"
 
-# id: int
-    #meal: str
-    #cuisine: str
-    #price: float
-    #difficulty: str
 
-delete_song_by_id 1
-get_all_songs
 
-get_song_by_id 2
-get_song_by_compound_key "The Beatles" "Let It Be" 1970
-get_random_song
+delete_meal
+get_meal_by_id 2
 
-clear_playlist
+get_meal_by_name
+
+
+clear_meals
 
 add_song_to_playlist "The Rolling Stones" "Paint It Black" 1966
 add_song_to_playlist "Queen" "Bohemian Rhapsody" 1975
