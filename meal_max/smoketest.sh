@@ -53,7 +53,7 @@ check_db() {
 
 clear_meal_table() {
   echo "Clearing the meal table..."
-  curl -s -X DELETE "$BASE_URL/clear-catalog" | grep -q '"status": "success"'
+  curl -s -X DELETE "$BASE_URL/clear-meals" | grep -q '"status": "success"'
 }
 
 create_meal() {
@@ -63,8 +63,9 @@ create_meal() {
   difficulty=$4
 
   echo "Adding meal ($meal - $cuisine, $price, $difficulty) to the meal table..."
-  curl -s -X POST "$BASE_URL/create-meal" -H "Content-Type: application/json" \
-    -d "{\"meal\":\"$meal\", \"cuisine\":\"$cuisine\", \"price\":$price, \"difficulty\":\"$difficulty\"}")
+  curl -s -X POST "$BASE_URL/create-meal" \
+    -H "Content-Type: application/json" \
+    -d "{\"meal\":\"$meal\", \"cuisine\":\"$cuisine\", \"price\":$price, \"difficulty\":\"$difficulty\"}"
 
   if [ $? -eq 0 ]; then
     echo "Meal added successfully."
@@ -78,11 +79,11 @@ delete_meal_by_id() {
   meal_id=$1
 
   echo "Deleting meal by ID ($meal_id)..."
-  response=$(curl -s -X DELETE "$BASE_URL/delete-meal/$meal_id")
-  if echo "$response" | grep -q '"status": "success"'; then
-    echo "Meal deleted successfully by ID ($meal_id)."
+  curl -s -X DELETE "$BASE_URL/delete-meal/$meal_id"
+  if [ $? -eq 0 ]; then
+    echo "Meal deleted successfully."
   else
-    echo "Failed to delete meal by ID ($meal_id)."
+    echo "Failed to delete meal."
     exit 1
   fi
 }
@@ -93,12 +94,9 @@ get_meal_by_name() {
 
   echo "Getting meal by name: $meal_name"
   response=$(curl -s -X GET "$BASE_URL/get-meal-by-name/$meal_name_encoded")
-  if echo "$response" | grep -q '"status": "success"'; then
+  if [ $? -eq 0 ]; then
     echo "Meal retrieved successfully by name."
-    if [ "$ECHO_JSON" = true ]; then
-      echo "Meal JSON (by name):"
-      echo "$response" | jq .
-    fi
+    echo "$response"
   else
     echo "Failed to get meal by name."
     echo $response
@@ -106,49 +104,16 @@ get_meal_by_name() {
   fi
 }
 
-get_all_meals() {
-  echo "Getting all meals in the playlist..."
-  response=$(curl -s -X GET "$BASE_URL/get-all-meals-from-meal-table")
-  if echo "$re  sponse" | grep -q '"status": "success"'; then
-    echo "All meals retrieved successfully."
-    if [ "$ECHO_JSON" = true ]; then
-      echo "Meals JSON:"
-      echo "$response" | jq .
-    fi
-  else
-    echo "Failed to get meals."
-    exit 1
-  fi
-}
 
 get_meal_by_id() {
   meal_id=$1
 
   echo "Getting meal by ID ($meal_id)..."
-  response=$(curl -s -X GET "$BASE_URL/get-meal-from-meal-table-by-id/$meal_id")
-  if echo "$response" | grep -q '"status": "success"'; then
-    echo "Meal retrieved successfully by ID ($meal_id)."
-    if [ "$ECHO_JSON" = true ]; then
-      echo "Meal JSON (ID $meal_id):"
-      echo "$response" | jq .
-    fi
+  response=$(curl -s -X GET "$BASE_URL/get-meal-by-id/$meal_id")
+  if [ $? -eq 0 ]; then
+    echo "$response"
   else
     echo "Failed to get meal by ID ($meal_id)."
-    exit 1
-  fi
-}
-
-get_random_meal() {
-  echo "Getting a random meal from the meal table..."
-  response=$(curl -s -X GET "$BASE_URL/get-random-meal")
-  if echo "$response" | grep -q '"status": "success"'; then
-    echo "Random meal retrieved successfully."
-    if [ "$ECHO_JSON" = true ]; then
-      echo "Random Meal JSON:"
-      echo "$response" | jq .
-    fi
-  else
-    echo "Failed to get a random meal."
     exit 1
   fi
 }
@@ -163,8 +128,7 @@ get_random_meal() {
 clear_combatants() {
   echo "Clearing combatants..."
   response=$(curl -s -X POST "$BASE_URL/clear-combatants")
-
-  if echo "$response" | grep -q '"status": "success"'; then
+  if [ $? -eq 0 ]; then
     echo "Combatants cleared successfully."
   else
     echo "Failed to clear combatants."
@@ -174,8 +138,8 @@ clear_combatants() {
 
 battle() {
   echo "Starting battle..."
-  response=$(curl-s -X GET "$BASE_URL/battle")
-  if echo "$response" | grep -q '"status": "success"'; then
+  response=$(curl -s -X GET "$BASE_URL/battle")
+  if [ $? -eq 0 ]; then
     echo "Meals successfully battled, $(echo -n "$response" | jq -r .winner) is the winner"
   else
     echo "Failed to start battle: $(echo -n "$response" | jq -r .error)"
@@ -186,12 +150,9 @@ battle() {
 get_combatants() {
   echo "Getting combatants..."
   response=$(curl -s -X GET "$BASE_URL/get-combatants")
-  if echo "$response" | grep -q '"status": "success"'; then
+  if [ $? -eq 0 ]; then
     echo "Combatants retrieved successfully."
-    if [ "$ECHO_JSON" = true ]; then
-      echo "Combatants JSON:"
-      echo "$response" | jq .
-    fi
+    echo "$response"
   else
     echo "Failed to get combatants."
     exit 1
@@ -205,7 +166,7 @@ prep_combatant() {
     -H "Content-Type: application/json" \
     -d "{\"meal\":\"$meal\"}")
 
-  if echo "$response" | grep -q '"status": "success"'; then
+  if [ $? -eq 0 ]; then
     echo "$meal successfully prepped."
   else
     echo "Failed to prep meal: $(echo -n "$response" | jq -r .error)"
@@ -219,16 +180,14 @@ prep_combatant() {
 #
 ######################################################
 
-# Function to get the song leaderboard sorted by play count
+# Function to get the meal leaderboard sorted by play count
 get_leaderboard() {
-  echo "Getting meal leaderboard sorted by play count..."
-  response=$(curl -s -X GET "$BASE_URL/meal-leaderboard?sort=play_count")
-  if echo "$response" | grep -q '"status": "success"'; then
+  echo "Getting meal leaderboard sorted by win count..."
+  response=$(curl -s -X GET "$BASE_URL/leaderboard")
+  if [ $? -eq 0 ]; then
     echo "Meal leaderboard retrieved successfully."
-    if [ "$ECHO_JSON" = true ]; then
-      echo "Leaderboard JSON (sorted by play count):"
-      echo "$response" | jq .
-    fi
+    echo "Leaderboard sorted by meal wins:"
+    echo "$response"
   else
     echo "Failed to get meal leaderboard."
     exit 1
@@ -247,11 +206,9 @@ create_meal "Steak" "French" 24.0 "MED"
 create_meal "Sushi" "Japanese" 32.0 "HIGH"
 create_meal "Dosa" "Indian" 34.0 "HIGH"
 
-delete_meal 1
-get_meal_by_id 2
+delete_meal_by_id 1
+get_meal_by_id 5
 get_meal_by_name "Steak"
-get_random_meal
-get_all_meals
 
 prep_combatant "Tacos"
 prep_combatant "Dosa"

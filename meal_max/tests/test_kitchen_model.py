@@ -54,12 +54,13 @@ def mock_cursor(mocker):
 
 def test_create_meal(mock_cursor):
     """Test creating a new meal in the catalog."""
+    """Test creating a new meal in the catalog."""
 
     # Call the function to create a new meal
     create_meal(meal = "Meal Name", cuisine="Cuisine Type", price = 25.0, difficulty="Difficulty Level") 
     expected_query = normalize_whitespace("""
         INSERT INTO meals (meal, cuisine, price, difficulty)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?)
     """)
 
     actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
@@ -124,11 +125,23 @@ def test_delete_meal(mock_cursor):
     actual_update_args = mock_cursor.execute.call_args_list[1][0][1]
 
     assert actual_select_args == expected_select_args, f"The SELECT query arguments did not match. Expected {expected_select_args}, got {actual_select_args}."
+    assert actual_update_args == expected_update_args, f"The UPDATE query arguments did not match. Expected {expected_update_args}, got {actual_update_args}."
 
-def test_clear_meal_table(mock_cursor, mocker):
+def test_delete_meal_already_deleted(mock_cursor):
+    """Test error when trying to delete a meal that's already marked as deleted."""
+
+    # Simulate that the song exists but is already marked as deleted
+    mock_cursor.fetchone.return_value = ([True])
+
+    # Expect a ValueError when attempting to delete a song that's already been deleted
+    with pytest.raises(ValueError, match= "Meal has already been deleted"):
+        delete_meal("Meal Name")
+
+def test_clear_catalog(mock_cursor, mocker):
     """Test clearing the entire meal catalog (removes all meals)."""
 
     # Mock the file reading
+    mocker.patch.dict('os.environ', {'SQL_CREATE_TABLE_PATH': 'sql/create_meal_table.sql'})
     mocker.patch.dict('os.environ', {'SQL_CREATE_TABLE_PATH': 'sql/create_meal_table.sql'})
     mock_open = mocker.patch('builtins.open', mocker.mock_open(read_data="The body of the create statement"))
 
@@ -136,6 +149,7 @@ def test_clear_meal_table(mock_cursor, mocker):
     clear_meals()
 
     # Ensure the file was opened using the environment variable's path
+    mock_open.assert_called_once_with('sql/create_meal_table.sql', 'r')
     mock_open.assert_called_once_with('sql/create_meal_table.sql', 'r')
 
     # Verify that the correct SQL script was executed
@@ -160,13 +174,13 @@ def test_clear_meal_table(mock_cursor, mocker):
 
 def test_get_meal_by_id(mock_cursor):
     # Simulate that the meal exists (id = 1)
-    mock_cursor.fetchone.return_value = (1, "Meal Name", "Cuisine", 25.0, "Difficulty Level")
+    mock_cursor.fetchone.return_value = (1, "Meal Name", "Cuisine Type", 25.0, "Difficulty level")
 
     # Call the function and check the result
     result = get_meal_by_id(1)
 
     # Expected result based on the simulated fetchone return value
-    expected_result = Meal("Meal Name", "Cuisine", 25.0, "Difficulty Level")
+    expected_result = Meal("Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
 
     # Ensure the result matches the expected output
     assert result == expected_result, f"Expected {expected_result}, got {result}"
@@ -189,13 +203,12 @@ def test_get_meal_by_id_bad_id(mock_cursor):
     # Simulate that no meal exists for the given ID
     mock_cursor.fetchone.return_value = None
 
-    # Expect a ValueError when the meal is not found
+    # Expect a ValueError when the song is not found
     with pytest.raises(ValueError, match="Meal with ID 999 not found"):
         get_meal_by_id(999)
 
 def test_get_meal_by_name(mock_cursor):
-    # Simulate that the meal exists (Meal = "Meal Name", cuisine= "Cuisine Type", Difficulty = "Difficulty Level")
-    mock_cursor.fetchone.return_value = (1, "Meal Name", "Cuisine", 25.0, "Difficulty Level")
+    mock_cursor.fetchone.return_value = (1, "Meal Name", "Cuisine", 25.0, "Difficulty Level", 180, False)
 
     # Call the function and check the result
     result = get_meal_by_name("Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
