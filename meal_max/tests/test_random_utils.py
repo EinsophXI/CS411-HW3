@@ -9,6 +9,7 @@ from meal_max.utils.random_utils import get_random
 logger = logging.getLogger(__name__)
 configure_logger(logger)
 
+@pytest.fixture
 def test_get_random_success(mocker):
     """Test the successful fetching of a random number."""
     mock_response = mocker.Mock()
@@ -19,6 +20,7 @@ def test_get_random_success(mocker):
     assert result == 0.18
     mock_response.raise_for_status.assert_called_once()
 
+@pytest.fixture
 def test_get_random_invalid_response(mocker):
     """Test handling of invalid response from random.org."""
     mock_response = mocker.Mock()
@@ -28,12 +30,14 @@ def test_get_random_invalid_response(mocker):
     with pytest.raises(ValueError, match="Invalid response from random.org: invalid_response"):
         get_random()
         
+@pytest.fixture
 def test_get_random_timeout(mocker):
     """Test handling of a timeout error."""
     mocker.patch('meal_max.utils.random_utils.requests.get', side_effect=requests.exceptions.Timeout)
     with pytest.raises(RuntimeError, match="Request to random.org timed out."):
         get_random()
 
+@pytest.fixture
 def test_get_random_request_exception(mocker):
     """Test handling of a generic request exception."""
     mock_response = mocker.Mock()

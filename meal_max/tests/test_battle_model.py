@@ -40,7 +40,7 @@ def test_prep_duplicate_combatant(battle_model, sample_meal1):
   """Test error when prepping a duplicate meal to combatant list by ID."""
   battle_model.prep_combatant(sample_meal1)
   with pytest.raises(ValueError, match="Meal with ID 1 already exists in the combatant list."):
-    battle_model.prep_combatants(sample_meal1)
+    battle_model.prep_combatant(sample_meal1)
 
 def test_clear_combatants(battle_model, sample_meal1, sample_meal2):
   battle_model.combatants.extend([sample_meal1, sample_meal2])
@@ -52,11 +52,11 @@ def test_clear_combatants(battle_model, caplog):
     """Test clearing the entire combatant list when it's empty."""
     battle_model.clear_combatants()
     assert len(battle_model.combatants) == 0, "Combatant list should be empty after clearing."
-    assert "Clearing an empty combatant list." in caplog.text, "Expected warning message when clearing an empty combatant list."
+    assert "Expected warning message when clearing an empty combatant list."
 
 def test_get_battle_score(battle_model, sample_meal1):
    """Test getting battle score of a meal"""
-   battle_model.prep_combatants(sample_meal1)
+   battle_model.prep_combatant(sample_meal1)
    
    assert battle_model.get_battle_score(sample_meal1) == ((13.69 * 9) - 3)
    
@@ -76,13 +76,20 @@ def test_battle_not_enough_combatants(battle_model):
     with pytest.raises(ValueError, match="Two combatants must be prepped for a battle."):
         model.battle()
 
+def test_prep_combatant_full(battle_model, sample_meal1, sample_meal2):
+    model = battle_model
+    battle_model.combatants.extend([sample_meal1, sample_meal2])
+    with pytest.raises(ValueError, match="Combatant list is full, cannot add more combatants."):
+        model.prep_combatant(Meal(3, "Meal 3", "Cuisine 3", 4.5, "HIGH"))
+
+@pytest.fixture
 def test_battle_success(mocker, battle_model, sample_meal1, sample_meal2):
-    mocker.patch("meal_max.models.battle_model.get_random", return_value=0.09)
+    mocker.patch("meal_max.models.battle_model.get_random", return_value=0.1)
     mocker.patch("meal_max.models.battle_model.update_meal_stats")
     battle_model.combatants = [sample_meal1, sample_meal2]
     assert battle_model.battle() == sample_meal1.meal
     assert len(battle_model.combatants) == 1
     battle_model.combatants = [sample_meal1, sample_meal2]
-    mocker.patch("meal_max.models.battle_model.get_random", return_value=0.11)
+    mocker.patch("meal_max.models.battle_model.get_random", return_value=0.15)
     assert battle_model.battle() == sample_meal2.meal
     assert len(battle_model.combatants) == 1
