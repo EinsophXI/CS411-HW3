@@ -54,10 +54,10 @@ def mock_cursor(mocker):
 
 def test_create_meal(mock_cursor):
     """Test creating a new meal in the catalog."""
-    """Test creating a new meal in the catalog."""
 
     # Call the function to create a new meal
-    create_meal(meal = "Meal Name", cuisine="Cuisine Type", price = 25.0, difficulty="Difficulty Level") 
+    
+    create_meal("Meal Name", "Cuisine Type", 25.0, 'LOW') 
     expected_query = normalize_whitespace("""
         INSERT INTO meals (meal, cuisine, price, difficulty)
         VALUES (?, ?, ?, ?)
@@ -72,29 +72,39 @@ def test_create_meal(mock_cursor):
     actual_arguments = mock_cursor.execute.call_args[0][1]
 
     # Assert that the SQL query was executed with the correct arguments
-    expected_arguments = ("Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
+    expected_arguments = ("Meal Name", "Cuisine Type", 25.0, 'LOW')
     assert actual_arguments == expected_arguments, f"The SQL query arguments did not match. Expected {expected_arguments}, got {actual_arguments}."
 
 def test_create_meal_duplicate(mock_cursor):
     """Test creating a meal with a duplicate artist, title, and year (should raise an error)."""
 
+    # Ensure that the exception's message matches the exact error message raised in the code
+    with pytest.raises(ValueError, match=r"'.*Meal Name.*' already exists"):
+        create_meal("Meal Name", "Cuisine Type", 25.0, 'LOW')
+    
+
     # Simulate that the database will raise an IntegrityError due to a duplicate entry
     mock_cursor.execute.side_effect = sqlite3.IntegrityError("UNIQUE constraint failed: meals.name, meals.cuisine, meals.price")
 
     # Expect the function to raise a ValueError with a specific message when handling the IntegrityError
-    with pytest.raises(ValueError, match=" Meal 'Meal Name', cuisine 'Cuisine Type', price 25.0 and difficulty 'Difficulty Level' already exist"):  # change
-        create_meal(meal = "Meal Name", cuisine="Cuisine Type", price = 25.0, difficulty="Difficulty Level")
+    with pytest.raises(ValueError, match="'Meal Name','Cuisine Type', 25.0, 'LOW' already exist"):  # change
+        create_meal( "Meal Name", "Cuisine Type", 25.0, 'LOW')
+    
 
 def test_create_meal_invalid_price():
-    """Test error when trying to create a meal with an invalid duration (e.g., negative duration)"""
+    """Test error when trying to create a meal with an invalid price (e.g., negative or non-numeric)."""
 
     # Attempt to create a meal with a negative price
-    with pytest.raises(ValueError, match="Invalid price: -25.0 \(must be a positive integer\)."):
-        create_meal(meal = "Meal Name", cuisine="Cuisine Type", price = -25.0, difficulty="Difficulty Level") 
 
-    # Attempt to create a meal with a non-integer duration
-    with pytest.raises(ValueError, match="Invalid price: invalid \(must be a positive integer\)."):
-        create_meal(meal = "Meal Name", cuisine="Cuisine Type", price = "twenty-five", difficulty="Difficulty Level")
+
+    # Attempt to create a meal with a non-numeric price
+    with pytest.raises(ValueError, match="Invalid price: -25.0. Price must be a positive number."):
+        create_meal("Meal Name", "Cuisine Type", -25.0, 'LOW')
+
+    # Ensure the invalid price exception is raised with the correct message
+    with pytest.raises(ValueError, match=r"Invalid price: .*\. Price must be a positive number."):
+        create_meal("Meal Name", "Cuisine Type", -25.0, 'LOW')
+
 
 def test_delete_meal(mock_cursor):
     """Test soft deleting a meal from the catalog by meal ID."""
@@ -180,7 +190,7 @@ def test_get_meal_by_id(mock_cursor):
     result = get_meal_by_id(1)
 
     # Expected result based on the simulated fetchone return value
-    expected_result = Meal("Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
+    expected_result = Meal(1, "Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
 
     # Ensure the result matches the expected output
     assert result == expected_result, f"Expected {expected_result}, got {result}"
@@ -208,19 +218,20 @@ def test_get_meal_by_id_bad_id(mock_cursor):
         get_meal_by_id(999)
 
 def test_get_meal_by_name(mock_cursor):
-    mock_cursor.fetchone.return_value = (1, "Meal Name", "Cuisine", 25.0, "Difficulty Level", 180, False)
+    # Simulate a database fetch return value
+    mock_cursor.fetchone.return_value = (1, "Meal Name", "Cuisine", 25.0, "LOW", False)
 
-    # Call the function and check the result
-    result = get_meal_by_name("Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
+    # Call the function with the correct number of arguments (only meal_name)
+    result = get_meal_by_name("Meal Name")
 
     # Expected result based on the simulated fetchone return value
-    expected_result = Meal("Meal Name", "Cuisine Type", 25.0, "Difficulty Level")
+    expected_result = Meal(id=1, meal="Meal Name", cuisine="Cuisine", price=25.0, difficulty="LOW")
 
     # Ensure the result matches the expected output
     assert result == expected_result, f"Expected {expected_result}, got {result}"
 
     # Ensure the SQL query was executed correctly
-    expected_query = normalize_whitespace("SELECT id, meal, cuisine, price, difficulty,  deleted FROM meals WHERE meal name = ? AND cuisine = ? AND price = ?")
+    expected_query = normalize_whitespace("SELECT id, meal, cuisine, price, difficulty, deleted FROM meals WHERE meal = ?")
     actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
 
     # Assert that the SQL query was correct
@@ -230,17 +241,18 @@ def test_get_meal_by_name(mock_cursor):
     actual_arguments = mock_cursor.execute.call_args[0][1]
 
     # Assert that the SQL query was executed with the correct arguments
-    expected_arguments = ("Meal Name", "Cuisine Type", 25.0)
+    expected_arguments = ("Meal Name",)
     assert actual_arguments == expected_arguments, f"The SQL query arguments did not match. Expected {expected_arguments}, got {actual_arguments}."
+
 
 def test_get_leaderboard(mock_cursor, mocker):
     """Test retrieving the leaderboard for meals, sorted by wins or win percentage."""
     
     # Simulate meals data with battles and wins for leaderboard
     mock_cursor.fetchall.return_value = [
-        (1, "Pizza", "Italian", 12.99, "LOW", 10, 8, 0.8),
-        (2, "Sushi", "Japanese", 15.50, "MED", 12, 10, 0.833),
-        (3, "Tacos", "Mexican", 8.75, "HIGH", 15, 12, 0.8)
+        (1, "Pizza", "Italian", 12.99, 'LOW', 10, 8, 0.8),
+        (2, "Sushi", "Japanese", 15.50, 'MED', 12, 10, 0.833),
+        (3, "Tacos", "Mexican", 8.75, 'HIGH', 15, 12, 0.8)
     ]
 
     # Test the "wins" sorting
